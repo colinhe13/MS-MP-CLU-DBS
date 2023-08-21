@@ -213,7 +213,7 @@ def dbs(img, d):
 # img: 原图像
 # d: 初始滤波器参数
 # d1: 更新滤波器参数
-def clu_dbs(img, d, d1):
+def clu_dbs(img, dst, d, d1):
     fs = 7
     # d = (fs - 1) / 6
     gaulen = int((fs - 1) / 2)
@@ -242,8 +242,8 @@ def clu_dbs(img, d, d1):
 
     rows, cols = im.shape
 
-    dst = np.random.rand(rows, cols) > 0.5
-    dst = np.where(dst, 1.0, 0.0)
+    # dst = np.random.rand(rows, cols) > 0.5
+    # dst = np.where(dst, 1.0, 0.0)
 
     imr = im / 255.0
     Err = dst - imr
@@ -425,8 +425,7 @@ def mp_clu_dbs(img, dst, d, d1, p):
     #     CountOpp += 1
     #     print("Opp = ", CountOpp, "  B = ", CountB)
     for i in range(p):
-        dst = clu_dbs(img, d, d1)
-        img = dst
+        dst = clu_dbs(img, dst, d, d1)
 
     return dst
 
@@ -465,6 +464,8 @@ if __name__ == '__main__':
     img = cv2.imread("resource/ctrf_sq1.jpg", cv2.IMREAD_GRAYSCALE)
 
     dst = seed(img, 1.3, 7.57/255)
+    # dst = clu_dbs(img, dst, 1.3, 1.7)
+    # dst = mp_clu_dbs(img, dst, 1.3, 1.7, 5)
     dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 10)
     cv2.imshow("image", dst)
     k = cv2.waitKey(0)
