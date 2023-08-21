@@ -25,11 +25,9 @@ def seed(img, d, g):
 
     rows, cols = im.shape
 
-    imr = np.random.rand(rows, cols) > g
-    # imr = np.random.rand(rows, cols) > 0.02968627451
-    imr = np.where(imr, 1.0, 0.0)
+    imr = np.full((rows, cols), g, dtype=np.float64)
 
-    dst = np.random.rand(rows, cols) > 0.5
+    dst = np.random.rand(rows, cols) > g
     dst = np.where(dst, 1.0, 0.0)
 
     Err = dst - imr
@@ -56,12 +54,13 @@ def seed(img, d, g):
                         if not (0 <= j + x < cols):  # j=0 x=0/1; j=cols-1 x=-1/0; j=cols x=-1
                             continue
                         if y == 0 and x == 0:
-                            if dst[i, j] == 1:
-                                a0 = -1
-                                a1 = 0
-                            else:
-                                a0 = 1
-                                a1 = 0
+                            # if dst[i, j] == 1:
+                            #     a0 = -1
+                            #     a1 = 0
+                            # else:
+                            #     a0 = 1
+                            #     a1 = 0
+                            continue
                         else:
                             if dst[i + y, j + x] != dst[i, j]:
                                 if dst[i, j] == 1:
@@ -209,6 +208,7 @@ def dbs(img, d):
 
     return dst
 
+
 # clu_dbs函数
 # img: 原图像
 # d: 初始滤波器参数
@@ -321,6 +321,7 @@ def clu_dbs(img, dst, d, d1):
 
     return dst
 
+
 # mp_clu_dbs函数
 # img: 原图像
 # d: 初始滤波器参数
@@ -429,6 +430,7 @@ def mp_clu_dbs(img, dst, d, d1, p):
 
     return dst
 
+
 # ms_mp_clu_dbs函数
 # img: 原图像
 # d: 初始滤波器参数
@@ -459,14 +461,55 @@ def ms_mp_clu_dbs(img, dst, d, d1, s, p):
     return dst
 
 
+# 生成ms_mp_clu_dbs网屏的函数
+# height: 网屏高度
+# width: 网屏宽度
+def screen_msmpcludbs(height, width, g, d, d1, s, p):
+    screen = np.full((height, width), 0, dtype=np.uint8)
+
+    # 首先生成灰度级127/255的ms_mp_clu_dbs半色调图像并存入screen数组
+    mid_img = np.full((height, width), 127, dtype=np.uint8)
+    dst = seed(screen, d, g)
+    dst = ms_mp_clu_dbs(mid_img, dst, d, d1, s, p)
+    # np.save("output/gray_values_127.npy", dst)
+    for i in range(height):
+        for j in range(width):
+            if dst[i, j] == 1:
+                screen[i, j] = 127
+
+    # 生成灰度级126/255到0/255的ms_mp_clu_dbs半色调图像
+    for k in range(126, -1, -1):
+        print(k)
+
+    # 生成灰度级128/255到255/255的ms_mp_clu_dbs半色调图像
+    for k in range(128, 256):
+        print(k)
+
+
+    return screen
+
 
 if __name__ == '__main__':
-    img = cv2.imread("resource/ctrf_sq1.jpg", cv2.IMREAD_GRAYSCALE)
+    # img = cv2.imread("resource/ctrf_sq1.jpg", cv2.IMREAD_GRAYSCALE)
 
-    dst = seed(img, 1.3, 7.57/255)
+    # dst = seed(img, 1.3, 7.57/255)
     # dst = clu_dbs(img, dst, 1.3, 1.7)
     # dst = mp_clu_dbs(img, dst, 1.3, 1.7, 5)
-    dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 10)
+    # dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 10)
+    # cv2.imshow("image", dst)
+    # k = cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+    height = 256
+    width = 256
+    gray_values = np.full((height, width), 127, dtype=np.uint8)
+
+    dst = seed(gray_values, 1.3, 7.57 / 255)
+    # dst = clu_dbs(gray_values, dst, 1.3, 1.7)
+
+    # np.save("output/gray_values.npy", dst)
+
+    # cv2.imwrite("output/gray_values.jpg", dst)
     cv2.imshow("image", dst)
     k = cv2.waitKey(0)
     cv2.destroyAllWindows()
