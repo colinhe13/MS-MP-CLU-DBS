@@ -25,7 +25,7 @@ def seed(img, d, g):
 
     rows, cols = im.shape
 
-    imr = np.full((rows, cols), g, dtype=np.float64)
+    imr = np.full((rows, cols), 1-g, dtype=np.float64)
 
     dst = np.random.rand(rows, cols) > g
     dst = np.where(dst, 1.0, 0.0)
@@ -103,6 +103,39 @@ def seed(img, d, g):
         # break
         CountOpp += 1
         print("Opp = ", CountOpp, "  B = ", CountB)
+
+    return dst
+
+
+# 从种子半色调生成初始化半色调
+# 每个8*8区域内计算原始图像平均灰度值，然后通过在种子相同位置的随机翻转匹配灰度
+def initialHalftone(img, dst):
+    im = np.array(img, dtype=np.float64)
+    rows, cols = im.shape
+    rowsi = rows // 8
+    colsi = cols // 8
+
+    for i in range(rowsi):
+        for j in range(colsi):
+            countg = 0
+            gray_value = 0.0
+            for y in range(8):
+                for x in range(8):
+                    gray_value += im[i * 8 + y, j * 8 + x] / 255
+            gray_value = 1 - (gray_value / 64)
+            print(gray_value)
+            for y in range(8):
+                for x in range(8):
+                    if dst[i * 8 + y, j * 8 + x] == 1:
+                        countg += 1
+                        if np.random.rand() < gray_value:
+                            dst[i * 8 + y, j * 8 + x] = 0
+                            countg -= 1
+                    else:
+                        if np.random.rand() > gray_value:
+                            dst[i * 8 + y, j * 8 + x] = 1
+                            countg += 1
+            print("countg = ", countg)
 
     return dst
 
@@ -250,6 +283,7 @@ def clu_dbs(img, dst, d, d1):
 
     CEP = signal.correlate2d(Err, CPP, mode='full')
     ESP_MIN = 0
+
 
     CountOpp = 0
 
@@ -425,9 +459,17 @@ def mp_clu_dbs(img, dst, d, d1, p):
     #
     #     CountOpp += 1
     #     print("Opp = ", CountOpp, "  B = ", CountB)
-    for i in range(p):
-        dst = clu_dbs(img, dst, d, d1)
 
+    # CountInit = 0
+    # for i in range(p):
+    #     if (CountInit == 0): CountInit += 0.25
+    #     elif (CountInit == 0.25): CountInit += 0.25
+    #     else: CountInit = 1
+    #     imgi = img * CountInit
+    #
+    #     dst = initialHalftone(imgi, dst)
+
+    dst = clu_dbs(img, dst, d, d1)
     return dst
 
 
@@ -456,8 +498,12 @@ def ms_mp_clu_dbs(img, dst, d, d1, s, p):
     #     dst = mp_clu_dbs(img5, dst, d, d1)
 
     for i in range(s):
-        imgi = 255 - (255 - img) // s * (i + 1)
+        imgi = 255 - (255 - img) / s * (i + 1)
+        initialHalftone(imgi, dst)
         dst = mp_clu_dbs(imgi, dst, d, d1, p)
+        # cv2.imshow("halftone result", dst)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
     return dst
 
 
@@ -492,24 +538,47 @@ def screen_msmpcludbs(height, width, g, d, d1, s, p):
 if __name__ == '__main__':
     # img = cv2.imread("resource/ctrf_sq1.jpg", cv2.IMREAD_GRAYSCALE)
 
-    # dst = seed(img, 1.3, 7.57/255)
-    # dst = clu_dbs(img, dst, 1.3, 1.7)
-    # dst = mp_clu_dbs(img, dst, 1.3, 1.7, 5)
-    # dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 10)
-    # cv2.imshow("image", dst)
+    img = np.full((256, 256), 127, dtype=np.uint8)
+
+    dst = seed(img, 1.3, 7.57/255)
+    # dst = seed(img, 1.3, 128/255)
+    # np.save("output/seed_7_size_256_256.npy", dst)
+    # dst = np.load("output/seed.npy")
+    # dst = np.load("output/seed_7_size_256_256.npy")
+    # dst = np.load("output/seed_7_size_256_256_cut.npy")
+    # dst = np.load("output/seed_128_size_256_256.npy")
+
+    # dst = np.random.rand(256, 256) > 0.5
+    # dst = np.where(dst, 1.0, 0.0)
+
+    # cv2.imshow("seed", dst)
     # k = cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-    height = 256
-    width = 256
-    gray_values = np.full((height, width), 127, dtype=np.uint8)
+    # dst = clu_dbs(img, dst, 1.3, 1.7)
+    # dst = mp_clu_dbs(img, dst, 1.3, 1.7, 5)
+    dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 10)
+    # np.save("output/cludbs_seed7_d13_17_gray127.npy", dst)
+    # np.save("output/mpcludbs_seed128_d1_17_p10_gray127.npy", dst)
+    # np.save("output/msmpcludbs_seed7_d13_17_s5_p10_gray127.npy", dst)
+    np.save("output/msmpcludbs_seed0_d13_17_s5_p10_gray127.npy", dst)
 
-    dst = seed(gray_values, 1.3, 7.57 / 255)
+    # cv2.imwrite("output/cludbs_seed7_d1_12_ctrf.png", dst)
+    cv2.imshow("image", dst)
+    k = cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+    # height = 256
+    # width = 256
+    # gray_values = np.full((height, width), 127, dtype=np.uint8)
+    #
+    # dst = seed(gray_values, 1.3, 7.57 / 255)
     # dst = clu_dbs(gray_values, dst, 1.3, 1.7)
 
     # np.save("output/gray_values.npy", dst)
 
     # cv2.imwrite("output/gray_values.jpg", dst)
-    cv2.imshow("image", dst)
-    k = cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow("image", dst)
+    # k = cv2.waitKey(0)
+    # cv2.destroyAllWindows()
