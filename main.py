@@ -111,6 +111,7 @@ def initialHalftone(img, dst):
     rowsi = rows // size
     colsi = cols // size
 
+    # 0->white 1->black
     for i in range(rowsi):
         for j in range(colsi):
             countg = 0
@@ -120,10 +121,11 @@ def initialHalftone(img, dst):
                     gray_value += im[i * size + y, j * size + x] / 255
 
             # gray_value = 1 - (gray_value / size ** 2)
-            gray_value = gray_value / size ** 2
+            # gray_value = gray_value / size ** 2
 
             # 0-->white  1-->black
-            bnum = round(size ** 2 * gray_value)
+            # bnum = round(size ** 2 * gray_value)
+            bnum = round(gray_value)
             for y in range(size):
                 for x in range(size):
                     # if dst[i * size + y, j * size + x] == 0:
@@ -138,7 +140,7 @@ def initialHalftone(img, dst):
                 if dst[i * size + y, j * size + x] == 0:
                     dst[i * size + y, j * size + x] = 1
                     bnum -= 1
-                countg += 1
+                    countg += 1
             # while bnum < 0:
             #     x = np.random.randint(0, size)
             #     y = np.random.randint(0, size)
@@ -146,7 +148,7 @@ def initialHalftone(img, dst):
             #         dst[i * size + y, j * size + x] = 0
             #         bnum += 1
             #     countg += 1
-            print("countg = ", countg)
+            # print("countg = ", countg)
     # cv2.imshow("after initial", dst)
     # cv2.waitKey(0)
     return dst
@@ -258,7 +260,7 @@ def dbs(img, d):
 # img: 原图像
 # d: 初始滤波器参数
 # d1: 更新滤波器参数
-def clu_dbs(img, dst, d, d1):
+def clu_dbs(img, dst, d, d1, dst0):
     fs = 7
     gaulen = int((fs - 1) / 2)
     GF = np.zeros((fs, fs))
@@ -282,9 +284,6 @@ def clu_dbs(img, dst, d, d1):
 
     rows, cols = im.shape
 
-    # dst = np.random.rand(rows, cols) > 0.5
-    # dst = np.where(dst, 1.0, 0.0)
-
     # gray_value = 0.0
     # for y in range(rows):
     #     for x in range(cols):
@@ -294,17 +293,16 @@ def clu_dbs(img, dst, d, d1):
     imr = im / 255.0
 
     # Err0 = dst - np.full((rows, cols), gray_value, dtype=np.float64)
-    Err0 = dst - imr
-    D_CEP0 = signal.correlate2d(Err0, CPP-CPP1, mode='full')
+    # Err0 = dst - imr
+    Err0 = dst0 - imr
+    # D_CEP0 = signal.correlate2d(Err0, CPP-CPP1, mode='full')
+    D_CEP0 = signal.convolve2d(Err0, CPP, mode='full') - signal.convolve2d(Err0, CPP1, mode='full')
 
     dst = initialHalftone(im, dst)
 
-
     Err = dst - imr
-    # Err = seed - imr
 
     CEP = signal.correlate2d(Err, CPP, mode='full')
-    ESP_MIN = 0
 
     CountOpp = 0
 
@@ -327,11 +325,9 @@ def clu_dbs(img, dst, d, d1):
                         if y == 0 and x == 0:
                             if dst[i, j] == 1:
                                 a0 = -1
-                                # a0 = 1
                                 a1 = 0
                             else:
                                 a0 = 1
-                                # a0 = 0
                                 a1 = 0
                         else:
                             if dst[i + y, j + x] != dst[i, j]:
@@ -383,8 +379,8 @@ def clu_dbs(img, dst, d, d1):
         CountOpp += 1
         print("Opp = ", CountOpp, "  B = ", CountB)
 
-    cv2.imshow("after cludbs", dst)
-    cv2.waitKey(0)
+    # cv2.imshow("after cludbs", dst)
+    # cv2.waitKey(0)
 
     return dst
 
@@ -394,7 +390,7 @@ def clu_dbs(img, dst, d, d1):
 # d: 初始滤波器参数
 # d1: 更新滤波器参数
 # p: pass(迭代次数)
-def mp_clu_dbs(img, dst, d, d1, p):
+def mp_clu_dbs(img, dst, d, d1, p, dst0):
     CountInit = 0
     for i in range(p):
         if CountInit == 0:
@@ -403,10 +399,19 @@ def mp_clu_dbs(img, dst, d, d1, p):
             CountInit += 0.25
         else:
             CountInit = 1
-        imgi = img * CountInit
-        # dst = initialHalftone(imgi, dst)
-        dst = clu_dbs(img, dst, d, d1)
 
+        # if CountInit < 1:
+        #     CountInit += 0.1
+        # else:
+        #     CountInit = 1
+
+        # CountInit = 1
+
+        imgi = img * CountInit
+        dst = clu_dbs(imgi, dst, d, d1, dst0)
+        # cv2.imshow("aftermp", dst)
+        # print("gray_value = " + str(np.count_nonzero(dst) / 127 ** 2))
+        # cv2.waitKey(0)
     return dst
 
 
@@ -416,16 +421,14 @@ def mp_clu_dbs(img, dst, d, d1, p):
 # d1: 更新滤波器参数
 # s: stage(阶段数)
 # p: pass(迭代次数)
-def ms_mp_clu_dbs(img, dst, d, d1, s, p):
+def ms_mp_clu_dbs(img, dst, d, d1, s, p, dst0):
     for i in range(s):
-        # imgi = 255 - (255 - img) / s * (i + 1)
         imgi = img / s * (i + 1)
-
-        # dst = initialHalftone(imgi, dst)
-        dst = mp_clu_dbs(imgi, dst, d, d1, p)
-        save_filepath = "output/init12/msmpcludbs_seed7_d13_17_s5_p10_gray127_0w1b_stage" + str(i) + ".npy"
-        # np.save(save_filepath, dst)
-
+        dst = mp_clu_dbs(imgi, dst, d, d1, p, dst0)
+        dst0 = dst
+        # cv2.imshow("afterms", dst)
+        # print("gray_value = " + str(np.count_nonzero(dst) / 127 ** 2))
+        # cv2.waitKey(0)
     return dst
 
 
@@ -768,40 +771,39 @@ def particular_toggle():
 
 if __name__ == '__main__':
     # img = cv2.imread("resource/ctrf_sq1.jpg", cv2.IMREAD_GRAYSCALE)
+    # img = cv2.imread("resource/1.pgm", cv2.IMREAD_GRAYSCALE)
+    img = np.load("resource/rev/1.npy")
     # img = np.full((256, 256), 127, dtype=np.uint8)
-    img = np.full((128, 128), 127, dtype=np.uint8)
+    # img = np.full((128, 128), 128, dtype=np.uint8)
 
-    # dst = get_seed(img, 1.3, 7.57 / 255)
     dst = get_seed(img, 1.3, 7.57 / 255)
-    # dst = get_seed(img, 1.3, 128/255)
+    # dst = get_seed(img, 1.3, 128 / 255)
+    # dst = get_seed(img, 1, 0.015)
 
-    # np.save("output/seed_7_size_256_256.npy", dst)
-    # dst = np.load("output/seed.npy")
-    # dst = np.load("output/seed7_d13_size256_0w1b.npy")
-    # dst = np.load("output/seed_7_size_256_256_cut.npy")
-    # dst = np.load("output/seed_128_size_256_256.npy")
-    # dst = np.load("output/msmpcludbs_seed7_init8_d13_17_s10_p5_gray127.npy")
-
+    # np.save("output/seed/seedlpi200_size128_0w1b.npy", dst)
+    # dst = np.load("output/seed/seed_7_size_128_0w1b.npy")
     # dst = np.random.rand(256, 256) > 0.5
     # dst = np.where(dst, 1.0, 0.0)
+    dst0 = dst
 
-    # cv2.imshow("seed", dst)
-    # k = cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    # CountInit = 0.25
+    # imgi = img * CountInit
+    # dst = initialHalftone(img, dst)
 
     # dst = clu_dbs(img, dst, 1.3, 1.7)
-    dst = mp_clu_dbs(img, dst, 1.3, 1.7, 10)
-    # dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 10)
+    # save_filepath = "output/init15/msmpcludbs_seedlpi200_d1_22_s5_p10_gray50.npy"
+    # dst = mp_clu_dbs(img, dst, 1.3, 1.7, 5, dst0)
+    dst = mp_clu_dbs(img, dst, 1.5, 1.8, 5, dst0)
+    # dst = mp_clu_dbs(img, dst, 1.3, 1.7, 10, dst0)
+    # dst = mp_clu_dbs(img, dst, 1.5, 1.8, 10, dst0)
+    # dst = mp_clu_dbs(img, dst, 1, 2.2, 5, dst0)
+    # save_filepath = "output/init16/mpcludbs_seed7_d13_17_p10_gray50div4.npy"
+    # dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 10, dst0)
+    # dst = ms_mp_clu_dbs(img, dst, 1, 2.2, 5, 10, dst0)
+    save_filepath = "output/bb/1.npy"
     # dst = np.where(dst == 0, 127, 255)
     # dst = fill_screen(dst, 127, 127, 1.3)
 
-    # np.save("output/seed7_d13_size256_0w1b.npy", dst)
-    # np.save("output/cludbs_seed7_d13_17_gray127.npy", dst)
-    # np.save("output/mpcludbs_seed128_d13_17_p10_gray127.npy", dst)
-    # np.save("output/msmpcludbs_seed7_init3_d13_17_s5_p10_gray127.npy", dst)
-    # np.save("output/msmpcludbs_seed0_d13_17_s5_p10_gray127.npy", dst)
-    # save_filepath = "output/msmpcludbs_seed7_init9_d13_17_s5_p10_gray127_0w1b.npy"
-    save_filepath = "output/init14/mpcludbs_seed7_d13_17_pd10_gray127.npy"
     np.save(save_filepath, dst)
 
     print("##################################################################" + "\n"
@@ -810,21 +812,9 @@ if __name__ == '__main__':
             "##################################################################")
 
     # dst = np.where(dst == 127, 0, 1)
+    dst = np.where(dst, 0.0, 1.0)
+
     # cv2.imwrite("output/cludbs_seed7_d1_12_ctrf.png", dst)
     cv2.imshow("image", dst)
     k = cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-    # height = 256
-    # width = 256
-    # gray_values = np.full((height, width), 127, dtype=np.uint8)
-    #
-    # dst = seed(gray_values, 1.3, 7.57 / 255)
-    # dst = clu_dbs(gray_values, dst, 1.3, 1.7)
-
-    # np.save("output/gray_values.npy", dst)
-
-    # cv2.imwrite("output/gray_values.jpg", dst)
-    # cv2.imshow("image", dst)
-    # k = cv2.waitKey(0)
-    # cv2.destroyAllWindows()
