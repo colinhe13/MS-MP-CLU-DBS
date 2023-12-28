@@ -117,8 +117,9 @@ def gen_eps(img, d, d1, cur_values, target_values):
 # screen = np.where(screen < 127, 0.0, 0.0)
 # cv2.imwrite("output/231226/screen_size512/screen_gray255.png", screen)
 
-for i in range (0, 127, 5):
-    print(i)
+# for i in range (0, 127, 5):
+#     print(i)
+value = np.load("output/231226/screen_size512/screen_matrx.npy")
 
 # notification_script = """
 # display notification "程序运行结束，请查看" with title "Pycharm" sound name "Glass"

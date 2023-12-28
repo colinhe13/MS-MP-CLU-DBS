@@ -889,21 +889,22 @@ def generate_gray_127(size):
 
 def m():
     # 生成256*256的灰度级127/255的图像
-    img = np.full((128, 128), 127, dtype=np.uint8)
+    # img = np.full((128, 128), 127, dtype=np.uint8)
     # img = np.full((256, 256), 127, dtype=np.uint8)
-    # img = np.full((512, 512), 127, dtype=np.uint8)
+    img = np.full((512, 512), 190, dtype=np.uint8)
     # img = np.full((128, 128), 64, dtype=np.uint8)
 
-    dst = get_seed(img, 1.3, 7.57 / 255)
+    # dst = get_seed(img, 1.3, 7.57 / 255)
     # dst = get_seed(img, 1.3, 25.5 / 255)
-    # dst = np.load("output/seed/seed_7_size_512_bossbase.npy")
-    # dst0 = dst
+    # dst = np.save("output/231226/seed/seed_d13_g7_size512.npy", dst)
+    dst = np.load("output/231226/seed/seed_d13_g7_size512.npy")
+    dst0 = dst
 
     # dst = clu_dbs(img, dst, 1.3, 1.7)
     # dst = mp_clu_dbs(img, dst, 1.3, 1.7, 10, dst0)
-    # dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 10, dst0)
+    dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 5, dst0)
 
-    save_filepath = "output/231226/msmpcludbs_d13_17_s5_p10_gray127_size128.png"
+    save_filepath = "output/231226/msmpcludbs_d13_17_s5_p10_gray190_size512.png"
 
     print("##################################################################" + "\n"
                                                                                  "       Program Completed       " + "\n"
@@ -942,7 +943,7 @@ def view_cpp():
     plt.show()
 
 def get_screen():
-    screen = cv2.imread("output/231226/screen_size512/screen_gray127.png", cv2.IMREAD_GRAYSCALE)
+    screen = cv2.imread("output/231226/screen_s63_190_size512/screen_gray63.png", cv2.IMREAD_GRAYSCALE)
 
     # screen = np.where(screen < 1, 1, 255)
     # screen = fill_screen(screen, 1, 0, 1.3, 1.7)
@@ -952,7 +953,7 @@ def get_screen():
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-    save_filepath = "output/231226/screen_size512/screen_gray"
+    save_filepath = "output/231226/screen_s127_size512/screen_gray"
     # 生成灰度级126至0的screen
     # for k in range(126, -1, -1):
     #     screen = np.where(screen < k+1, k+1, 255)
@@ -963,6 +964,7 @@ def get_screen():
     # 生成灰度级128至255的screen
     # screen = cv2.imread("output/231226/screen_size512/screen_gray127.png", cv2.IMREAD_GRAYSCALE)
     # for k in range(128, 256):
+    # for k in range(64, 128):
     #     screen = np.where(screen < k, k-1, 255)
     #     screen = fill_screen(screen, k-1, k, 1.3, 1.7)
     #     screen = np.where(screen != 255, 0.0, 255.0)
@@ -1015,11 +1017,11 @@ def send_notification():
     """
     os.system(f"osascript -e '{notification_script}'")
 
-m()
+# m()
 # send_notification()
 # view_cpp()
 # gray_matching("output/231208/msmpcludbs_d13_17_s5_p10_gray127.png", 1.3, 127)
-# get_screen()
+get_screen()
 # gen_halftone_dataset()
 
 # cv2.imshow("screen", screen)
