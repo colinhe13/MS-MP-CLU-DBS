@@ -416,7 +416,7 @@ def mp_clu_dbs(img, dst, d, d1, p, dst0):
 
         imgi = img * CountInit
         dst = clu_dbs(imgi, dst, d, d1, dst0)
-        print("gray_value = " + str(np.count_nonzero(dst) / 256))
+        print("gray_value = " + str(np.count_nonzero(dst) / img.shape[0]))
         # cv2.imshow("aftermp"+str(i), dst)
 
     # cv2.waitKey(0)
@@ -431,7 +431,7 @@ def mp_clu_dbs(img, dst, d, d1, p, dst0):
 # p: pass(迭代次数)
 def ms_mp_clu_dbs(img, dst, d, d1, s, p, dst0):
     for i in range(s):
-        print("======= stage " + str(i + 1) + " / " + str(p) + " =======")
+        print("======= stage " + str(i + 1) + " / " + str(s) + " =======")
         imgi = img / s * (i + 1)
         dst = mp_clu_dbs(imgi, dst, d, d1, p, dst0)
         dst0 = dst
@@ -889,20 +889,21 @@ def generate_gray_127(size):
 
 def m():
     # 生成256*256的灰度级127/255的图像
+    img = np.full((128, 128), 127, dtype=np.uint8)
     # img = np.full((256, 256), 127, dtype=np.uint8)
-    img = np.full((512, 512), 127, dtype=np.uint8)
+    # img = np.full((512, 512), 127, dtype=np.uint8)
     # img = np.full((128, 128), 64, dtype=np.uint8)
 
     dst = get_seed(img, 1.3, 7.57 / 255)
     # dst = get_seed(img, 1.3, 25.5 / 255)
     # dst = np.load("output/seed/seed_7_size_512_bossbase.npy")
-    dst0 = dst
+    # dst0 = dst
 
     # dst = clu_dbs(img, dst, 1.3, 1.7)
     # dst = mp_clu_dbs(img, dst, 1.3, 1.7, 10, dst0)
-    dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 5, dst0)
+    # dst = ms_mp_clu_dbs(img, dst, 1.3, 1.7, 5, 10, dst0)
 
-    save_filepath = "output/231208/msmpcludbs_d13_17_s5_p10_gray127_size512.png"
+    save_filepath = "output/231226/msmpcludbs_d13_17_s5_p10_gray127_size128.png"
 
     print("##################################################################" + "\n"
                                                                                  "       Program Completed       " + "\n"
@@ -941,7 +942,7 @@ def view_cpp():
     plt.show()
 
 def get_screen():
-    screen = cv2.imread("output/231208/screen/screen_gray127.png", cv2.IMREAD_GRAYSCALE)
+    screen = cv2.imread("output/231226/screen_size512/screen_gray127.png", cv2.IMREAD_GRAYSCALE)
 
     # screen = np.where(screen < 1, 1, 255)
     # screen = fill_screen(screen, 1, 0, 1.3, 1.7)
@@ -951,31 +952,31 @@ def get_screen():
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
+    save_filepath = "output/231226/screen_size512/screen_gray"
     # 生成灰度级126至0的screen
     # for k in range(126, -1, -1):
     #     screen = np.where(screen < k+1, k+1, 255)
     #     screen = fill_screen(screen, k+1, k, 1.3, 1.7)
     #     screen = np.where(screen != 255, 0.0, 255.0)
-    #     save_filepath = "output/231208/screen/screen_gray" + str(k)
-    #     cv2.imwrite(save_filepath + ".png", screen)
+    #     cv2.imwrite(save_filepath + str(k) + ".png", screen)
 
     # 生成灰度级128至255的screen
+    # screen = cv2.imread("output/231226/screen_size512/screen_gray127.png", cv2.IMREAD_GRAYSCALE)
     # for k in range(128, 256):
     #     screen = np.where(screen < k, k-1, 255)
     #     screen = fill_screen(screen, k-1, k, 1.3, 1.7)
     #     screen = np.where(screen != 255, 0.0, 255.0)
-    #     save_filepath = "output/231208/screen/screen_gray" + str(k)
-    #     cv2.imwrite(save_filepath + ".png", screen)
+    #     cv2.imwrite(save_filepath + str(k) + ".png", screen)
 
     # 读取图像，生成screen矩阵
     matrx = np.zeros(screen.shape, dtype=np.float64)
     for k in range(0, 256):
-        img = cv2.imread("output/231208/screen/screen_gray" + str(k) + ".png", cv2.IMREAD_GRAYSCALE)
+        img = cv2.imread(save_filepath + str(k) + ".png", cv2.IMREAD_GRAYSCALE)
         for i in range(img.shape[0]):
             for j in range(img.shape[1]):
                 if img[i, j] == 0 and matrx[i, j] == 0:
                     matrx[i, j] = k
-    np.save("output/231208/screen/screen_matrx.npy", matrx)
+    np.save("output/231226/screen_size512/screen_matrx.npy", matrx)
 
 
     # screen = np.where(screen < 127, 127, 255)
@@ -986,6 +987,28 @@ def get_screen():
     # cv2.imwrite(save_filepath + ".png", screen)
     # np.save(save_filepath + ".npy", screen)
 
+# 使用网屏处理数据集，生成半色调数据集
+def gen_halftone_dataset():
+    screen = np.load("output/231226/screen_size512/screen_matrx.npy")
+    height = screen.shape[0]
+    width = screen.shape[1]
+    for i in range(1, 10001):
+        print("working on " + str(i) + ".pgm")
+        img = cv2.imread("F:/Ander/Downloads/BossBase-1.01-cover/" + str(i) + ".pgm", cv2.IMREAD_GRAYSCALE)
+        for k in range(height):
+            for j in range(width):
+                if screen[k, j] >= img[k, j]:
+                    img[k, j] = 0
+                else:
+                    img[k, j] = 255
+        cv2.imwrite("output/231226/bossbase_h/" + str(i) + ".png", img)
+
+    # cv2.imshow("img", img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+
+
 def send_notification():
     notification_script = """
     display notification "程序运行结束，请查看" with title "Pycharm" sound name "Glass"
@@ -993,10 +1016,11 @@ def send_notification():
     os.system(f"osascript -e '{notification_script}'")
 
 m()
-send_notification()
+# send_notification()
 # view_cpp()
 # gray_matching("output/231208/msmpcludbs_d13_17_s5_p10_gray127.png", 1.3, 127)
 # get_screen()
+# gen_halftone_dataset()
 
 # cv2.imshow("screen", screen)
 # cv2.waitKey(0)

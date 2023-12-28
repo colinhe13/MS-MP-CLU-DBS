@@ -52,8 +52,8 @@ def cal_cpp1(d):
 
 def get_graydiff():
     # 计算灰度值
-    img1 = cv2.imread("output/231208/msmpcludbs_d13_17_s5_p10_gray127.png", cv2.IMREAD_GRAYSCALE)
-    img2 = cv2.imread("output/231208/msmpcludbs_d13_17_s5_p10_gray127_1.png", cv2.IMREAD_GRAYSCALE)
+    img1 = cv2.imread("output/231226/msmpcludbs_d13_17_s5_p10_gray127.png", cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread("output/231226/msmpcludbs_d13_17_s5_p10_gray127_1.png", cv2.IMREAD_GRAYSCALE)
     count1 = np.count_nonzero(img1)
     count2 = np.count_nonzero(img2)
     print(256 - count1 / 256, 256 - count2 / 256)
@@ -113,6 +113,12 @@ def gen_eps(img, d, d1, cur_values, target_values):
 
 # get_graydiff()
 
+# screen = cv2.imread("output/231226/screen_size512/screen_gray255.png", cv2.IMREAD_GRAYSCALE)
+# screen = np.where(screen < 127, 0.0, 0.0)
+# cv2.imwrite("output/231226/screen_size512/screen_gray255.png", screen)
+
+for i in range (0, 127, 5):
+    print(i)
 
 # notification_script = """
 # display notification "程序运行结束，请查看" with title "Pycharm" sound name "Glass"
